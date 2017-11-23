@@ -7,4 +7,5 @@ authors = ["Axel Christ <adracus@gmail.com>"]
 ncurses = "5.86.0"
 rand = "0.3"
 time = "0.1"
+clap = "2.27.1"
 

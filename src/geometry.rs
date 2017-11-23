@@ -34,9 +34,13 @@ impl Bounds {
     pub fn contains(&self, &Point { x, y }: &Point) -> bool {
         x >= 0 && x < self.width as i32 && y >= 0 && y < self.height as i32
     }
+
+    pub fn area(&self) -> i32 {
+        self.width as i32 * self.height as i32
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -51,6 +55,15 @@ impl Direction {
             &Direction::Right => (1, 0),
             &Direction::Down => (0, 1),
             &Direction::Left => (-1, 0),
+        }
+    }
+
+    pub fn is_opposite(&self, other: &Direction) -> bool {
+        match self {
+            &Direction::Up => other == &Direction::Down,
+            &Direction::Right => other == &Direction::Left,
+            &Direction::Down => other == &Direction::Up,
+            &Direction::Left => other == &Direction::Right,
         }
     }
 }

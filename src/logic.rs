@@ -51,10 +51,11 @@ pub struct Food {
 
 impl Food {
     fn random_nonconflicting<R: Rng>(r: &mut R, bounds: &Bounds, snake: &Snake) -> Food {
+        let value = r.gen_range(1, 3);
         while {
-            let p = Point::random_in_bounds(r, bounds);
-            if !snake.contains(&p) {
-                return Food { pos: p, value: 1 };
+            let pos = Point::random_in_bounds(r, bounds);
+            if !snake.contains(&pos) {
+                return Food { pos, value };
             }
             true
         } {}
@@ -97,28 +98,43 @@ impl <R: Rng> Renderable for NonInitializedGame<R> {
     }
 }
 
+pub enum GameResult {
+    Ongoing,
+    Lost,
+    Won,
+}
+
 pub struct Game<R : Rng> {
     rng: R,
     bounds: Bounds,
 
-    pub direction: Direction,
+    direction: Direction,
     snake: Snake,
 
     food: Food,
 }
 
 impl <R : Rng> Game<R> {
-    pub fn tick(&mut self) -> bool {
+    pub fn tick(&mut self) -> GameResult {
         let next_head = self.snake.next_head(&self.direction);
         if !self.bounds.contains(&next_head) || self.snake.contains(&next_head) {
-            return false;
+            return GameResult::Lost;
         }
         self.snake.move_direction(&self.direction);
         if self.food.pos == next_head {
+            if self.snake.segments.len() as i32 == self.bounds.area() {
+                return GameResult::Won;
+            }
             self.snake.feed(self.food.value);
             self.food = Food::random_nonconflicting(&mut self.rng, &self.bounds, &self.snake);
         }
-        true
+        GameResult::Ongoing
+    }
+
+    pub fn change_direction(&mut self, new_direction: Direction) {
+        if !self.direction.is_opposite(&new_direction) {
+            self.direction = new_direction
+        }
     }
 }
 

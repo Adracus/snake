@@ -9,6 +9,10 @@ pub trait Renderer {
     fn get_direction(&mut self) -> Option<Direction>;
 
     fn get_direction_nonblocking(&mut self) -> Option<Direction>;
+
+    fn render_message(&mut self, message: &str);
+
+    fn wait_for_confirmation(&mut self);
 }
 
 pub trait Renderable {
@@ -38,12 +42,12 @@ impl NCurses {
     fn draw_border(&mut self, bounds: &Bounds) {
         let horizontal_line =
             std::iter::repeat("X")
-                .take((bounds.width + 1) as usize).collect::<String>();
+                .take((bounds.width + 2) as usize).collect::<String>();
         mv(0, 0);
         printw(&horizontal_line);
         mv(bounds.height as i32 + 1, 0);
         printw(&horizontal_line);
-        for y in 0..(bounds.height as i32 + 1) {
+        for y in 1..(bounds.height as i32 + 1) {
             mv(y, 0);
             printw("X");
             mv(y, bounds.width as i32 + 1);
@@ -92,6 +96,13 @@ impl Renderer for NCurses {
         refresh();
     }
 
+    fn render_message(&mut self, message: &str) {
+        clear();
+        mv(0, 0);
+        printw(message);
+        refresh();
+    }
+
     fn get_direction(&mut self) -> Option<Direction> {
         timeout(-1);
         self.get_direction_internal()
@@ -100,6 +111,11 @@ impl Renderer for NCurses {
     fn get_direction_nonblocking(&mut self) -> Option<Direction> {
         timeout(0);
         self.get_direction_internal()
+    }
+
+    fn wait_for_confirmation(&mut self) {
+        timeout(-1);
+        getch();
     }
 }
 

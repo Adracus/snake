@@ -3,15 +3,20 @@ extern crate ncurses;
 use rand::Rng;
 use logic::*;
 use geometry::*;
-use std::error::Error;
 use renderer::*;
 use std::{time, thread};
 
 const MS_PER_FRAME: u64 = 300;
 
-pub fn run_game<R: Rng>(rng: R) -> Result<(), Box<Error>> {
+pub fn run_game<'a, R: Rng>(rng: R, width: u8, height: u8) -> Result<(), &'a str> {
+    let bounds = Bounds::new(width, height);
+
+    if bounds.area() < 16 {
+        return Err("Too small area to play with");
+    }
+
     let mut renderer = NCurses::new();
-    let init_game = NonInitializedGame::new(rng, Bounds::new(10, 10));
+    let init_game = NonInitializedGame::new(rng, bounds);
 
     renderer.render(&init_game);
 
@@ -20,22 +25,33 @@ pub fn run_game<R: Rng>(rng: R) -> Result<(), Box<Error>> {
     let mut game = init_game.start(direction);
 
     loop {
-        game.direction =
-            renderer.get_direction_nonblocking()
-            .unwrap_or(game.direction);
+        if let Some(new_direction) = renderer.get_direction_nonblocking() {
+            game.change_direction(new_direction);
+        }
+
         let start = time::Instant::now();
-        let ok = game.tick();
+        let state = game.tick();
 
         renderer.render(&game);
-        
-        if !ok {
-           break;
+
+        match state {
+            GameResult::Ongoing => (),
+            GameResult::Won => {
+                renderer.render_message("You won!");
+                break
+            },
+            GameResult::Lost => {
+                renderer.render_message("You lost!");
+                break
+            },
         }
 
         let elapsed = start.elapsed();
         let to_sleep = time::Duration::from_millis(MS_PER_FRAME) - elapsed;
         thread::sleep(to_sleep);
     }
+
+    renderer.wait_for_confirmation();
     
     Ok(())
 }
